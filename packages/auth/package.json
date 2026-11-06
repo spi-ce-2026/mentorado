@@ -1,0 +1,30 @@
+{
+  "name": "@mentorias/auth",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Autenticação compartilhada pelo mentorApp e pelo mentoradoApp: Google Sign-In, Firebase, JWT do backend e cliente HTTP",
+  "main": "src/index.js",
+  "scripts": {
+    "lint": "eslint src",
+    "test": "jest"
+  },
+  "peerDependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-google-signin/google-signin": "^16.0.0",
+    "axios": "^1.13.2",
+    "expo-constants": "~57.0.22",
+    "firebase": "^12.6.0",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-paper": "^5.14.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "babel-preset-expo": "~57.0.0",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react": "^7.37.5",
+    "globals": "^16.5.0",
+    "jest": "~29.7.0",
+    "jest-expo": "~57.0.6"
+  }
+}

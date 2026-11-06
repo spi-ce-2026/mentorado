@@ -1,0 +1,84 @@
+{
+  "project_info": {
+    "project_number": "248660691174",
+    "project_id": "mentorias-uberhub",
+    "storage_bucket": "mentorias-uberhub.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:248660691174:android:10644a13200c90cc115327",
+        "android_client_info": {
+          "package_name": "com.professorangoti.mentoradoapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "248660691174-b3tbs3gl2i04436l27ralke7s8sk8qda.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCyBuaqh_MXpI5OG7mKcaD1Bdzoyf1TAqY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "248660691174-b3tbs3gl2i04436l27ralke7s8sk8qda.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:248660691174:android:3a1e4fa587b36e27115327",
+        "android_client_info": {
+          "package_name": "com.professorangoti.mentorapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "248660691174-19n8fp5gfholshgbjvbgtlo1k3ffvdcj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.professorangoti.mentorapp",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "248660691174-nvdct5mf9uf0dlatnssoiqfh8g0r4ojd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.professorangoti.mentorapp",
+            "certificate_hash": "7e158495c0432037d544fb3f8e479af55c69c33c"
+          }
+        },
+        {
+          "client_id": "248660691174-b3tbs3gl2i04436l27ralke7s8sk8qda.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCyBuaqh_MXpI5OG7mKcaD1Bdzoyf1TAqY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "248660691174-b3tbs3gl2i04436l27ralke7s8sk8qda.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

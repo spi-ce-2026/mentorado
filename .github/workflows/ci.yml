@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # npm workspace: o package-lock.json da raiz instala o app e o pacote packages/auth
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (app)
+        run: npm run lint -- --max-warnings 0
+
+      - name: Lint (@mentorias/auth)
+        run: npm run lint -w @mentorias/auth -- --max-warnings 0
+
+      - name: Test (app)
+        run: npm test -- --ci --coverage --watchAll=false
+
+      - name: Test (@mentorias/auth)
+        run: npm test -w @mentorias/auth -- --ci --watchAll=false
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
