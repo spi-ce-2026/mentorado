@@ -23,13 +23,12 @@ A implementar: UC04 resgatar voucher, UC05 solicitar mentoria, UC06 ver o mentor
 ## Instalação
 
 ```bash
-npm ci
+npm install
 cp .env.example .env                # preencha com os valores fornecidos pelo professor
 npx expo prebuild -p android --clean
 npx expo run:android
 ```
 
-- O `npm ci` instala o app e o pacote `packages/auth` de uma vez. Instale sempre na raiz: o único `package-lock.json` fica nela.
 - O login Google não funciona no Expo Go. Use sempre `npx expo run:android`, que gera um *development build*.
 - O app usa o backend de integração no Heroku, que já é o padrão do `app.config.js`. Só defina `EXPO_PUBLIC_API_BASE_URL` no `.env` se o professor indicar outro backend.
 - Depois de mudar o `.env`, reinicie o Metro limpando o cache: `npx expo start -c`.
