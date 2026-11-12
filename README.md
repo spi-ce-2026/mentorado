@@ -23,7 +23,7 @@ A implementar: UC04 resgatar voucher, UC05 solicitar mentoria, UC06 ver o mentor
 ## Instalação
 
 ```bash
-npm install
+npm ci
 cp .env.example .env                # preencha com os valores fornecidos pelo professor
 npx expo prebuild -p android --clean
 npx expo run:android
