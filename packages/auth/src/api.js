@@ -6,6 +6,7 @@ import { DeviceEventEmitter } from "react-native";
 import { log } from "./logger";
 
 const baseURL = getApiBaseUrl();
+const isAuthTokenEndpoint = url => /auth\/(?:login|refresh)(?:\?|$)/.test(url || "");
 
 export const api = axios.create({ baseURL });
 
@@ -51,9 +52,8 @@ api.interceptors.request.use(
     if (__DEV__) {
       log(`[API REQUEST] ${config.method?.toUpperCase()} ${config.url}`, {
         baseURL: config.baseURL,
-        headers: config.headers,
         params: config.params,
-        data: config.data,
+        data: isAuthTokenEndpoint(config.url) ? "[REDACTED]" : config.data,
       });
     }
     return config;
@@ -86,7 +86,7 @@ api.interceptors.response.use(
       log(`[API RESPONSE] ${response.config.method?.toUpperCase()} ${response.config.url}`, {
         status: response.status,
         statusText: response.statusText,
-        data: response.data,
+        data: isAuthTokenEndpoint(response.config.url) ? "[REDACTED]" : response.data,
       });
     }
     return response;
@@ -157,9 +157,7 @@ api.interceptors.response.use(
 export const authService = {
   // Login
   login: async data => {
-    log("authService.login -> data -> ", data);
     const response = await api.post("/auth/login", data);
-    log("authService.login -> response -> ", response);
     if (response.data.accessToken) {
       await AsyncStorage.setItem("token", response.data.accessToken);
       await AsyncStorage.setItem("refreshToken", response.data.refreshToken);

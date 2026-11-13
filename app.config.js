@@ -8,7 +8,7 @@ export default {
       "@react-native-google-signin/google-signin",
       "expo-status-bar",
       "expo-font",
-      // No SDK 57 a tela de abertura é configurada por este plugin; a chave "splash" na raiz foi removida.
+      // A tela de abertura é configurada por este plugin; a chave "splash" na raiz foi removida.
       [
         "expo-splash-screen",
         {

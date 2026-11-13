@@ -1,6 +1,6 @@
 # UberHub Mentorias: app do mentorado
 
-App do mentorado da plataforma UberHub Mentorias, em React Native (Expo SDK 57). Este repositório é o *starter*: o login e a navegação base estão prontos, e as telas de cada funcionalidade ficam para a equipe. O backend já está no ar; aqui só tem o app.
+App do mentorado da plataforma UberHub Mentorias, em React Native (Expo SDK 58). Este repositório é o *starter*: o login e a navegação base estão prontos, e as telas de cada funcionalidade ficam para a equipe. O backend já está no ar; aqui só tem o app.
 
 Pacote Android: `com.professorangoti.mentoradoapp`. Os outros apps da plataforma são o [app do mentor](https://github.com/spi-ce-2026/mentor) e o [app do administrador](https://github.com/spi-ce-2026/administrador).
 
@@ -16,7 +16,7 @@ A implementar: UC04 resgatar voucher, UC05 solicitar mentoria, UC06 ver o mentor
 
 ## Pré-requisitos
 
-- Node.js 20 ou mais recente.
+- Node.js 22.13+ (linha 22), 24.3+ (linha 24) ou 26+. As linhas 23 e 25 não são suportadas pelo Expo SDK 58.
 - Android Studio com um emulador, ou um celular com depuração USB ativada.
 - Uma conta Google de teste.
 
