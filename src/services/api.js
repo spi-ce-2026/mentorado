@@ -4,3 +4,8 @@ import { api } from "@mentorias/auth";
 export const tagService = {
 	list: () => api.get("/tags"),
 };
+
+export const voucherService = {
+	listMine: () => api.get("/admin/vouchers/mine"),
+	redeem: code => api.post("/admin/vouchers/redeem", { code }),
+};
