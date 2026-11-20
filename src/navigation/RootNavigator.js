@@ -5,14 +5,41 @@ import { useTheme } from "react-native-paper";
 import { useAuth } from "@mentorias/auth";
 
 import AccountScreen from "../screens/AccountScreen";
+import AcompanhamentoMentoriaScreen from "../screens/AcompanhamentoMentoriaScreen";
 import HomeScreen from "../screens/HomeScreen";
 import LoginScreen from "../screens/LoginScreen";
+import SolicitarMentoriaScreen from "../screens/SolicitarMentoriaScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const MentoriaStackNav = createNativeStackNavigator();
 
 function TabIcon({ name, color, size }) {
 	return <MaterialCommunityIcons name={name} color={color} size={size} />;
+}
+
+// Pilha da aba Mentoria. Navegar para "Inicio" (aba do resgate de voucher) sobe até o navegador de abas.
+function MentoriaStack() {
+	const theme = useTheme();
+
+	return (
+		<MentoriaStackNav.Navigator
+			screenOptions={{
+				headerStyle: { backgroundColor: theme.colors.primary },
+				headerTintColor: theme.colors.onPrimary,
+			}}>
+			<MentoriaStackNav.Screen
+				name="SolicitarMentoria"
+				component={SolicitarMentoriaScreen}
+				options={{ title: "Solicitar mentoria" }}
+			/>
+			<MentoriaStackNav.Screen
+				name="AcompanhamentoMentoria"
+				component={AcompanhamentoMentoriaScreen}
+				options={{ title: "Acompanhamento", headerBackVisible: false, gestureEnabled: false }}
+			/>
+		</MentoriaStackNav.Navigator>
+	);
 }
 
 function MainTabs() {
@@ -31,6 +58,14 @@ function MainTabs() {
 				options={{
 					title: "Início",
 					tabBarIcon: ({ color, size }) => <TabIcon name="home" color={color} size={size} />,
+				}}
+			/>
+			<Tab.Screen
+				name="Mentoria"
+				component={MentoriaStack}
+				options={{
+					headerShown: false,
+					tabBarIcon: ({ color, size }) => <TabIcon name="account-heart-outline" color={color} size={size} />,
 				}}
 			/>
 			<Tab.Screen
