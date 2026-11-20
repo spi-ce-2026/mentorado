@@ -1,0 +1,425 @@
+RELATÓRIO DE ENTREGA - SPRINT 2 - UC05 SOLICITAR MENTORIA
+=========================================================
+
+Responsável : Cristian Passos da Silva
+Data        : 2026-11-20 (execução desta revisão)
+Entrega     : 20/11/2026
+Repositório : spi-ce-2026/mentorado
+Pasta local : /Users/cristian/Documents/Workspace/UberHub/mentorado
+Branch      : feature/UC05-solicitar-mentoria (em uso; não houve troca de branch)
+Escopo      : somente UC05. Sem alterações em HomeScreen.js (Vanessa), nem em backend.
+
+Legenda dos resultados:
+  [MOCK]     testado com mocks (Jest), não prova integração real
+  [REAL]     comprovado contra o gateway de produção, por requisição real
+  [ANDROID]  executado em dispositivo/emulador Android
+  [PENDENTE] não comprovado nesta execução
+
+
+1. ESTADO DA UC05
+-----------------
+Implementado no app (código presente e coberto por testes com mock):
+  - GET /tags agrupado por categoria                         [MOCK]
+  - seleção de uma ou mais áreas                             [MOCK]
+  - POST /mentorships com o objeto "preferences"             [MOCK]
+  - tratamento de voucher_required (cartão + mensagem)       [MOCK]
+  - navegação para a aba Inicio (resgate já existente)       [MOCK]
+  - preservação das escolhas após erro/retorno               [MOCK]
+  - tela de acompanhamento para pending_match e matched      [MOCK]
+
+NÃO comprovado de ponta a ponta:
+  - sucesso real de POST /mentorships                        [PENDENTE]
+  - retorno do resgate com seleções preservadas no aparelho  [PENDENTE]
+  - pending_match vindo do backend real                      [PENDENTE]
+
+Conclusão: a UC05 está implementada no app e pronta para revisão e PR. A
+entrega completa depende de backend real de POST /mentorships e de um voucher
+elegível (seção 9).
+
+
+2. FUNCIONALIDADES CONCLUÍDAS (requisitos da Sprint 2)
+------------------------------------------------------
+ 1. Consultar tags com GET /tags ................................ implementado [MOCK] [REAL do GET]
+ 2. Agrupar tags por categoria .................................. implementado [MOCK]
+ 3. Selecionar uma ou mais áreas ................................ implementado [MOCK]
+ 4. Solicitar mentoria com POST /mentorships .................... implementado [MOCK]; sucesso real PENDENTE
+ 5. Tratar erro voucher_required ................................ implementado [MOCK]
+ 6. Direcionar ao resgate de voucher (aba Inicio) ............... implementado [MOCK]; retorno PENDENTE
+ 7. Preservar seleções ao voltar do resgate ..................... implementado por design (tela mantida
+    montada na aba Mentoria) [MOCK]; comportamento no aparelho PENDENTE
+ 8. Exibir tela de espera para pending_match .................... implementado [MOCK]; backend real PENDENTE
+
+
+3. INTEGRAÇÕES REAIS VERIFICADAS
+--------------------------------
+3.1 Configuração do app
+  - URL usada: https://mentorias-api-gateway-10fcbc088ede.herokuapp.com/api/v1
+    (app.config.js, extra.API_BASE_URL; fallback em packages/auth/src/env.js).
+  - Cliente Axios único: packages/auth/src/api.js (baseURL = URL acima + /api/v1
+    se necessário). Token enviado como "Bearer" a partir de AsyncStorage; refresh
+    em 401 via /auth/refresh.
+  - Autenticação: Firebase/Google Sign-In no pacote @mentorias/auth; login de
+    backend em POST /auth/login.
+
+3.2 Requisições reais (somente GET, sem token, sem alteração de dados)
+  - GET /api/v1/tags ......................... 200 [REAL]
+      116 tags, 9 categorias, sem nomes duplicados e sem espaços nas pontas.
+      Campos: id, name, category, description, createdAt, updatedAt.
+      Observação: docs/openapi-mentorado.yaml diz que /tags exige bearerAuth
+      (401 sem token). A produção respondeu 200 sem token. Divergência a
+      comunicar à equipe do backend.
+  - GET /api/v1/users/me ..................... 401 (rota existe, exige token) [REAL]
+  - GET /api/v1/mentorships/mentor ........... 401 (rota existe, exige token) [REAL]
+  - GET /api/v1/vouchers/mentor .............. 401 (rota existe, exige token) [REAL]
+  - GET /api/v1/admin/vouchers/mine .......... 401 (rota existe, exige token) [REAL]
+  - GET /api/v1/profiles ..................... 401 (rota existe, exige token) [REAL]
+  - GET /api/v1/auth/login ................... 500 com JSON genérico [REAL]
+      Não conclusivo: a rota é POST; o 500 a GET não permite afirmar nada.
+  - GET /api/v1/tags/, /api/v1/admin/tags ... 401; GET /api/v1/mentors ... 404 [REAL]
+  - GET /uberhub-mentorship-service/... e /uberhub-auth-service/... ...... 404 [REAL]
+
+  Nenhuma requisição POST foi enviada ao backend compartilhado.
+
+3.3 Repositórios do backend (GitHub, somente leitura, org uberhub-mentorias2026)
+  - uberhub-api-gateway: application.yml roteia somente /uberhub-<serviço>/**
+    para localhost:8081-8085. Não há rota /api/v1. Há um predicado com erro de
+    digitação: Path=?uberhub-auth-service/** (deveria ser /). Logo, o gateway
+    do repositório NÃO é o que responde em produção: a URL de produção responde
+    em /api/v1/... mas o código do repositório não tem essa rota.
+  - uberhub-mentorship-service: MentorshipController tem apenas
+    @RequestMapping("/api/v1/mentorships") e um comentário TODO para POST /.
+    MentorshipService.create também é TODO. Ou seja, POST /mentorships NÃO está
+    implementado no código do repositório (último push 2026-11-18).
+    VoucherController está em /api/v1/vouchers: /generate, /mentor, /redeem,
+    /validate/{code}. O app usa /admin/vouchers/*, que não aparece nos
+    controllers do admin-service.
+  - uberhub-admin-service: /admin/dashboard, /admin/mentors/pending,
+    /admin/mentors/{id}/approve. Não há controller de /tags (existe apenas a
+    entidade AdminTags).
+  - uberhub-profile-service: apenas /profiles (GET, POST, /health).
+  - uberhub-auth-service: /auth/register, /auth/login, /auth/refresh,
+    /auth/recover-password. Não há /users/me.
+  - Conclusão: o código dos repositórios não implementa POST /mentorships, o
+    /tags nem /users/me. O gateway de produção responde em rotas que o código
+    dos repositórios não contém. Não é possível dizer, a partir daqui, qual
+    código está implantado. Não se considera o backend integrado.
+
+3.4 Contrato do payload (comparação app x docs/openapi-mentorado.yaml)
+  Enviado pelo app (src/services/mentorshipService.js, buildPreferences):
+    { "preferences": { "expertise": [...], "availableTimes": [],
+      "preferredLanguage": "Português", "sessionFormat": "online" } }
+  - Estrutura e campos batem com MentorshipRequest do contrato.
+  - expertise: o contrato diz que os nomes vêm de GET /tags. O app usa os nomes
+    retornados pelo catálogo.
+  - Exemplo do pedido ("Java", "Dados"): esses nomes NÃO existem no catálogo
+    atual (existem, por exemplo, "Java Spring Boot" e "Data Analytics"). O
+    exemplo não é válido como está; não foi usado no app.
+  - preferredLanguage ("Português"/"Inglês"), sessionFormat ("online"/
+    "presencial") e availableTimes: valores provisórios. O contrato marca
+    "a confirmar com o backend" (proposta de redesign, decisão 7.8). O app
+    não alterou o formulário: a lista de horários segue vazia.
+  - Erro: o contrato define ErrorResponse com o campo "error". O app lê
+    error.response.data.error, portanto a correspondência está correta.
+
+3.5 Fluxo de vouchers
+  - Código do app: voucherService (src/services/api.js) chama
+    /admin/vouchers/mine e /admin/vouchers/redeem (tela da Vanessa, não alterada).
+  - Repositório mentorship-service expõe /api/v1/vouchers/redeem e
+    /api/v1/vouchers/mentor. Caminho diferente do usado pelo app. Precisa ser
+    confirmado com a equipe do voucher (fora do escopo desta entrega).
+  - Não foi resgatado voucher real nem criado voucher (não autorizado).
+
+
+4. PROBLEMAS ENCONTRADOS
+------------------------
+ P1 [média] POST /mentorships não implementado no repositório do serviço de
+    mentorias (TODO). Dependência externa. Ver 3.3.
+ P2 [média] Gateway de produção não corresponde ao código dos repositórios
+    (rotas /api/v1 sem origem conhecida). Dependência externa. Ver 3.3.
+ P3 [média] Valores de sessionFormat, preferredLanguage e availableTimes não
+    confirmados pelo backend. Dependência externa.
+ P4 [média] Mesma seleção editável durante o envio: os chips continuavam
+    alteráveis enquanto a solicitação estava em andamento (achado da revisão do
+    Codex). CORRIGIDO (seção 5).
+ P5 [baixa] Divergência de /tags: contrato pede token, produção responde 200
+    sem token. Comunicar ao backend. Sem alteração no app.
+ P6 [baixa] Caminho de resgate de voucher diferente entre app
+    (/admin/vouchers/*) e repositório (/api/v1/vouchers/*). Dependência externa
+    com a equipe de vouchers.
+ P7 [baixa] Exemplo de payload do pedido usa nomes que não existem no catálogo.
+    Não afeta o app; apenas o exemplo.
+ P8 [baixa] Aviso de voucher usa accessibilityLiveRegion, que só vale no
+    Android; no iOS o VoiceOver não anuncia automaticamente. Não corrigido: o
+    alvo da entrega é o APK Android. Pendência se o iOS entrar no escopo.
+ P9 [baixa] Após o envio, a tela de acompanhamento substitui o formulário e
+    não há ação para nova solicitação. Achado do Codex. Não corrigido: depende
+    de regra de negócio (se pode haver mais de uma solicitação pendente).
+    Pendência de decisão.
+ P10 [baixa] normalizeTags aplica trim() ao nome, que é o valor enviado em
+    expertise. Achado do Codex. Não corrigido: o catálogo atual não tem espaços
+    nas pontas, então não há efeito hoje.
+
+
+5. CORREÇÕES REALIZADAS NESTA EXECUÇÃO
+--------------------------------------
+ C1 (P4) src/screens/SolicitarMentoriaScreen.js
+    Os chips de áreas, idioma, formato e disponibilidade passaram a receber
+    disabled={submitting}. Evita que o formulário mostre uma seleção diferente
+    da enviada.
+ C2 (teste) src/__tests__/SolicitarMentoriaScreen.test.js
+    Novo teste: "bloqueia a alteração de áreas enquanto a solicitação está em
+    andamento". Verifica que o chip fica desabilitado e não muda de estado
+    durante o envio.
+
+Nenhuma alteração em backend, HomeScreen.js ou contratos compartilhados.
+
+
+6. ARQUIVOS MODIFICADOS NESTA EXECUÇÃO
+--------------------------------------
+  - src/screens/SolicitarMentoriaScreen.js               (C1)
+  - src/__tests__/SolicitarMentoriaScreen.test.js        (C2)
+  - docs/ai-reports/uc05-entrega-2026-11-20.txt          (este relatório, novo)
+
+Estado da árvore antes desta execução (não alterado por mim):
+  - M app.config.js, M package.json, M package-lock.json: alterações FORA da UC05
+    (bundleIdentifier, ITSAppUsesNonExemptEncryption, extra.eas.projectId,
+    expo-dev-client). Não entram na entrega da UC05.
+  - M src/navigation/RootNavigator.js: contém a aba Mentoria (UC05) e só isso.
+  - Pastas e arquivos untracked de outros trabalhos e de ambiente (.agents/,
+    .claude/, skills-lock.json, docs/TO-DO.md, docs/design/, outros docs/*.txt).
+    Não foram tocados.
+
+
+7. TESTES EXECUTADOS E RESULTADOS
+---------------------------------
+Todos os testes abaixo são de execução local com mocks (Jest) ou de análise
+estática. Nenhum é prova de integração com backend real.
+
+  a) Jest (npx jest), após a correção ........ 4 suítes, 30 testes: APROVADOS [MOCK]
+     Antes da correção (execução inicial desta revisão): 29 aprovados.
+     Os 29 da auditoria anterior não foram reutilizados como resultado.
+  b) ESLint (npx eslint src) ................. saída vazia, código 0 [estática]
+  c) Exportação do bundle Android
+     (npx expo export --platform android --dev false) ... código 0,
+     bundle android de ~7 MB, sem erros ou avisos [estática]
+  d) Testes específicos da UC05 .............. SolicitarMentoriaScreen.test.js e
+     mentorshipRequest.test.js, incluídos em (a) [MOCK]
+  e) GET /tags e GET de rotas protegidas no gateway de produção ... ver 3.2 [REAL, sem token]
+  f) Emulador/dispositivo Android ............ NÃO EXECUTADO [PENDENTE]
+     Motivo: nenhum dispositivo conectado (adb devices vazio). Existe um AVD
+     (MeuAVD34) e um APK debug antigo em android/app/build, mas o fluxo real exige
+     Metro ativo, instalação do build, login Google/Firebase com credenciais do
+     usuário (não disponíveis aqui) e um voucher elegível.
+  g) POST /mentorships real ................. NÃO EXECUTADO [PENDENTE]
+     Motivo: o código do repositório não implementa a rota, e não há credencial
+     de teste nem voucher autorizado.
+
+
+8. RESULTADO DA REVISÃO DO CODEX
+--------------------------------
+Revisão única, somente leitura, modelo gpt-6.2-sol, esforço low, sem --write,
+limitada aos arquivos da UC05 e ao trecho do contrato.
+
+  Achados recebidos:
+   1. [média] Após o envio não há como iniciar nova solicitação .... P9, não corrigido (decisão de regra)
+   2. [média] Chips editáveis durante o POST ......................... P4, CORRIGIDO (C1, C2)
+   3. [baixa] trim() altera o nome enviado em expertise .............. P10, não corrigido (sem efeito hoje)
+   4. [baixa] accessibilityLiveRegion só funciona no Android .......... P8, não corrigido (alvo Android)
+
+  Confirmados por leitura do código: 4 de 4. Nenhum achado foi rejeitado.
+  Nenhuma chamada repetida ao Codex.
+
+
+9. PENDÊNCIAS EXTERNAS (BLOQUEIOS DA ENTREGA)
+--------------------------------------------
+ E1 Backend: implementar POST /mentorships no serviço de mentorias (hoje TODO),
+    retornando status matched ou pending_match. Responsável: equipe do serviço
+    de mentorias.
+ E2 Backend: confirmar qual código o gateway de produção executa. As rotas
+    /api/v1 respondem, mas não existem nos repositórios. Responsável: equipe do
+    gateway.
+ E3 Backend: confirmar valores aceitos de preferredLanguage, sessionFormat e o
+    formato de availableTimes (decisão 7.8). Responsável: equipe de mentorias.
+ E4 Vouchers: haver um voucher elegível para o usuário de teste, e confirmar o
+    caminho de resgate (/admin/vouchers/* no app x /api/v1/vouchers/* no
+    repositório). Responsável: equipe de vouchers (Vanessa / admin-service).
+    Não criei nem alterei voucher.
+ E5 Dispositivo: build de desenvolvimento, Metro e login com as credenciais do
+    usuário para validar no emulador/aparelho: sucesso, voucher_required,
+    retorno do resgate com seleções, e pending_match. Responsável: Cristian.
+ E6 Decisão de produto: é permitida mais de uma solicitação pendente? Define
+    se a tela de acompanhamento precisa de ação "Nova solicitação" (P9).
+ E7 (se iOS entrar no escopo) anúncio de acessibilidade do aviso de voucher (P8).
+
+O que impede a entrega hoje: E1 e E2 (sem POST /mentorships real, não há sucesso
+nem pending_match comprovados) e E4 (sem voucher, o fluxo de bloqueio não pode
+ser completado com backend real).
+
+
+10. ARQUIVOS PREVISTOS PARA COMMIT E PR
+---------------------------------------
+Incluir (somente UC05; ainda NÃO adicionados ao índice):
+  src/screens/SolicitarMentoriaScreen.js
+  src/screens/AcompanhamentoMentoriaScreen.js
+  src/components/SelectableChip.js
+  src/config/mentorshipOptions.js
+  src/services/mentorshipService.js
+  src/utils/mentorshipRequest.js
+  src/navigation/RootNavigator.js            (apenas a aba Mentoria; diff verificado)
+  src/__tests__/SolicitarMentoriaScreen.test.js
+  src/__tests__/mentorshipRequest.test.js
+  docs/ai-reports/uc05-entrega-2026-11-20.txt
+  Opcional, a decidir: docs/openapi-mentorado.yaml (contrato de referência)
+
+Não incluir (fora da UC05 ou de outros integrantes/ambiente):
+  app.config.js, package.json, package-lock.json
+  .agents/, .claude/, skills-lock.json
+  docs/TO-DO.md, docs/design/, docs/analise-vouchers-backend.txt,
+  docs/apresentacao-backend-auth.txt, docs/overview-ngrok.txt,
+  docs/swagger-testes-auth.txt, docs/sprint-2-uc05-relatorio.txt (decidir)
+
+Sem commit, push, merge ou PR nesta execução (não autorizado).
+
+
+11. ROTEIRO DO VÍDEO (até 3 minutos)
+------------------------------------
+Atenção: o vídeo só mostra sucesso real se E1, E2 e E4 estiverem resolvidos.
+Sem isso, gravar apenas o que é verdadeiro e dizer o que depende de backend.
+
+ 0:00-0:20  Apresentação: UC05 Solicitar Mentoria, Sprint 2, Cristian.
+ 0:20-0:50  Abrir a aba Mentoria. Mostrar as áreas carregadas de GET /tags,
+            agrupadas por categoria.
+ 0:50-1:15  Selecionar uma ou mais áreas. Mostrar idioma e formato. Explicar
+            que a disponibilidade ainda não tem opções definidas.
+ 1:15-1:45  Enviar sem voucher: mostrar o cartão "Voucher necessário" e o botão
+            "Resgatar voucher". Abrir o resgate na aba Início e voltar à aba
+            Mentoria com as áreas preenchidas. [só se houver voucher e backend]
+ 1:45-2:15  Reenviar: mostrar a tela de acompanhamento com o status pending_match
+            ("Buscando mentor"). [só se o backend retornar pending_match]
+ 2:15-2:45  Mostrar a evidência: Jest (30 testes com mocks), ESLint, bundle Android
+            e as pendências, dizendo claramente o que foi e o que não foi
+            comprovado.
+ 2:45-3:00  Encerramento: pendências externas e próximos passos.
+
+Se o backend não estiver pronto na data, o vídeo mostra o formulário, o
+cartão de voucher e os testes, e declara a dependência em E1 e E4.
+
+
+ANEXO - Evidências de execução (saídas resumidas)
+-------------------------------------------------
+  Jest:    Test Suites: 4 passed, 4 total | Tests: 30 passed, 30 total
+  ESLint:  sem saída, código 0
+  Bundle:  Exported ... android bundles (1): _expo/static/js/android/index-*.js (7MB), código 0
+  GET /api/v1/tags: 200 application/json, lista de 116 itens (sem token)
+
+
+12. TESTE MANUAL NO ANDROID (2026-11-20, após o relatório de entrega)
+---------------------------------------------------------------------
+Ambiente:
+  - Emulador: AVD MeuAVD34, Android 14 (API 34), sdk_gphone64_arm64, iniciado por linha de comando.
+  - Build: npx expo run:android (debug, instalado no emulador; Metro ativo na porta 8081).
+  - Backend: https://mentorias-api-gateway-10fcbc088ede.herokuapp.com/api/v1 (URL padrão do app).
+  - Login Google/Firebase: concluído no emulador pelo responsável (observado no log do app:
+    POST /auth/login 200 e GET /users/me 200). Nenhuma credencial foi solicitada, lida ou registrada aqui.
+
+Resultados observados (evidência: capturas de tela do emulador e log do app):
+  [ANDROID + REAL] Aba "Mentoria" aparece na barra inferior, ao lado de Início e Conta.          VALIDADO
+  [ANDROID + REAL] Tela "Solicitar mentoria" abre sem erro.                                        VALIDADO
+  [ANDROID + REAL] GET /tags retornou 200 com a lista real do backend; as áreas aparecem
+                   agrupadas por categoria (ex.: "Carreira e Desenvolvimento Profissional",
+                   "Design e UX/UI", "Finanças e Investimentos", "Gestão e Liderança").            VALIDADO
+  [ANDROID]        Selecionar uma área: marca com ícone de check e contador "N áreas selecionadas". VALIDADO
+  [ANDROID]        Desmarcar uma área: contador passou de 3 para 2; ao remarcar voltou a 3.        VALIDADO
+  [ANDROID]        Idioma (Português/Inglês) e Formato (Online/Presencial): exibidos e marcáveis
+                   (Português e Online marcados por padrão).                                      VISUAL (escolha não testada)
+  [ANDROID]        Disponibilidade: exibe o aviso "ainda não foram definidas" e envia lista vazia.  VISUAL
+  [ANDROID]        Botão "Solicitar mentoria" visível ao final do formulário.                      VISUAL (não pressionado)
+  [REAL]           GET /admin/vouchers/mine retornou 200 com lista vazia: o usuário de teste não
+                   possui crédito de voucher no momento.                                          VALIDADO
+  [ANDROID]        Aba Mentoria, rolagem e alternância de chips executadas por adb (input tap/swipe).
+
+NÃO executado nesta sessão (não autorizado):
+  - POST /mentorships: não foi enviado nenhum POST de criação de mentoria.
+  - Duplicidade de envio (item 7): só coberta por teste com mock. NÃO VALIDADA no Android.
+  - voucher_required (item 9): depende do POST. NÃO VALIDADO no backend real.
+  - Botão de resgate para a aba Início (item 10): depende de voucher_required. NÃO VALIDADO.
+  - Retorno do resgate com seleções preservadas (item 11): NÃO VALIDADO no Android.
+  - pending_match / matched (item 12): depende de POST bem-sucedido. NÃO VALIDADO com backend real.
+
+Problemas observados na tela (não corrigidos nesta etapa):
+  P11 [baixa] O título "Solicitar mentoria" aparece duas vezes: na barra superior e como cabeçalho
+      da tela. Redundância visual; decidir se mantém.
+  P12 [baixa] A barra superior exibe um ícone de engrenagem sem função aparente. Verificar a origem
+      (não foi identificado no código da UC05 nesta análise).
+  P13 [observação] Ao rolar, a área de chips ocupa grande parte da tela; a seleção de áreas
+      precisa de muita rolagem. Não é defeito funcional.
+
+Resumo para a entrega:
+  - Validado no Android contra o backend real: abertura da tela, GET /tags, agrupamento e seleção.
+  - Validado visualmente: formulário completo até o botão de envio.
+  - Não validado: POST, voucher_required, retorno do resgate e pending_match. Dependem de
+    autorização para o POST e de um voucher elegível (crédito atual: zero).
+
+
+13. TESTES COM MOCK NO ANDROID (SIMULADOS, NÃO SÃO PROVA DE BACKEND)
+--------------------------------------------------------------------
+Modo mock: src/services/mentorshipSimulation.js, chamado por src/services/mentorshipService.js.
+Ativação: __DEV__ true E EXPO_PUBLIC_MENTORSHIP_MOCK=1 (desligado por padrão; ausente em release).
+Cenário: EXPO_PUBLIC_MENTORSHIP_MOCK_SCENARIO = pending_match | matched | voucher_required |
+voucher_not_available | network_error. Padrão: pending_match.
+GET /tags continua real. Somente POST /mentorships é simulado. IDs fictícios "SIMULADO-0001".
+
+Resultados no emulador (Android 14, build debug, Metro com o cenário indicado):
+  [MOCK + ANDROID] Cenário A (voucher_required): cartão "Voucher necessário" com botões
+                   "Resgatar voucher" e "Já resgatei, enviar novamente". Área marcada preservada.  VALIDADO (simulado)
+  [MOCK + ANDROID] Cenário A: "Resgatar voucher" leva à aba Início; ao voltar à aba Mentoria a
+                   área continua marcada.                                                            VALIDADO (simulado)
+  [MOCK + ANDROID] Cenário B (pending_match): tela Acompanhamento "Buscando mentor" com a área
+                   solicitada e botão "Voltar ao início".                                            VALIDADO (simulado)
+  [MOCK + ANDROID] Cenário C (matched): tela Acompanhamento "Mentor definido" com a área solicitada. VALIDADO (simulado)
+  Não executados nesta etapa: network_error e voucher_not_available (cobertos por Jest com mock).
+  Verificação: nenhum "POST /mentorships" aparece nos logs do Metro durante os cenários A, B e C.
+
+INCIDENTE: POST REAL ENVIADO AO BACKEND DE PRODUÇÃO (ANTES DO MOCK)
+  - Logcat/Metro registraram duas requisições reais: POST /mentorships às 17:14:40 e 17:15:01
+    (horário local), com base URL de produção e áreas escolhidas no aparelho.
+  - Nenhum comando executado nesta sessão tocou o botão de envio nesses horários; a origem
+    provável é uma ação no aparelho fora dos comandos. Confirmar com o responsável.
+  - Não há registro de resposta nos logs. Resultado desconhecido.
+  - Indício de que nenhum voucher foi consumido: a tela Início mostrou "0 créditos disponíveis"
+    às 17:27, depois dos envios.
+  - Ação pendente: verificar no backend de produção se foi criado registro de mentoria para a
+    conta de teste. O repositório não expõe rota de listagem de mentorias do mentorado.
+  - Não foram enviados outros POST reais nesta etapa.
+
+Commit desta entrega: sem o mock. mentorshipService.js foi restaurado à versão de produção.
+  Os arquivos mentorshipSimulation.js e mentorshipSimulation.test.js ficaram fora do commit (locais, não versionados).
+
+
+14. ROTEIRO DO VÍDEO COM ORIGEM DE CADA TRECHO (2026-11-20, 17:45-17:50)
+------------------------------------------------------------------------
+Trecho                                                        Origem            Situação
+ 1. Abertura do app e login                                    real              app já estava logado (sem novo login gravado)
+ 2. GET /tags: áreas agrupadas por categoria                   REAL              validado
+ 3. Seleção de área e preferências (idioma, formato)           REAL (tela)       validado
+ 4. Envio com POST /mentorships                                REAL (1 envio)    validado: 1 requisição real
+ 5. voucher_required: cartão "Voucher necessário"              REAL              validado
+ 6. "Resgatar voucher" leva à aba Início                       REAL (navegação)  validado
+ 7. Retorno à aba Mentoria com seleção preservada              REAL (navegação)  validado (1 área)
+ 8. Sucesso simulado com pending_match                         SIMULADO (mock)   validado; 0 POST reais
+ 9. Tela de acompanhamento "Buscando mentor"                   SIMULADO (mock)   validado
+
+Registro do envio real desta etapa:
+  - Um único POST /mentorships real (17:47:32), com 1 área (Product Management).
+  - Resposta: voucher_required, exibida no app (cartão "Voucher necessário").
+  - O saldo continua zero: não há voucher consumido.
+  - Este envio foi feito para a demonstração pedida, após autorização explícita para um envio real.
+
+Ativação e desativação dos cenários:
+  - Real: Metro iniciado sem EXPO_PUBLIC_MENTORSHIP_MOCK. Comando: npx expo start --port 8081
+  - Mock: EXPO_PUBLIC_MENTORSHIP_MOCK=1 EXPO_PUBLIC_MENTORSHIP_MOCK_SCENARIO=pending_match npx expo start --port 8081
+  - Verificação de que não há envio real no mock: logcat sem linhas "POST /mentorships" (0 durante o mock).
+  - Estado atual do ambiente: Metro em modo MOCK (pending_match), para gravar o trecho 8-9.
+
+Limitação observada: o botão "Resgatar voucher" não criou crédito (nenhum código resgatado).
+Os trechos de voucher e pending_match não envolvem resgate real.
