@@ -125,3 +125,81 @@ const UNKNOWN_STATUS_INFO = {
 export function getMentorshipStatusInfo(status) {
 	return STATUS_INFO[status] || UNKNOWN_STATUS_INFO;
 }
+
+const SIMPLE_STATUS_LABELS = {
+	pending_match: "buscando mentor",
+	matched: "aguardando agendamento",
+	scheduled: "agendada",
+	in_progress: "em andamento",
+	completed: "concluída",
+	change_requested: "troca solicitada",
+};
+
+/** Traduz o status técnico da mentoria para uma linguagem simples para maior compreensão (UC09). */
+export function formatMentorshipStatusLabel(status) {
+	if (!status || typeof status !== "string") {
+		return "status não informado";
+	}
+
+	const normalized = status.trim().toLowerCase();
+	return SIMPLE_STATUS_LABELS[normalized] || status.trim();
+}
+
+/** Transforma a resposta do GET /mentorships/mentee em uma lista de mentorias */
+export function normalizeMentorships(data) {
+	if (Array.isArray(data)) {
+		return data;
+	}
+
+	if (Array.isArray(data?.mentorships)) {
+		return data.mentorships;
+	}
+
+	if (Array.isArray(data?.content)) {
+		return data.content;
+	}
+
+	throw new Error("A lista de mentorias está em um formato inválido.");
+}
+
+/** Normaliza o perfil do mentor retornado por GET /profiles/mentor/{mentorId}. */
+export function normalizeMentorProfile(data) {
+	const profile = data?.profile ?? data ?? {};
+	const rawAreas = Array.isArray(profile.areas)
+		? profile.areas
+		: Array.isArray(profile.expertise)
+			? profile.expertise
+			: [];
+
+	const areas = rawAreas
+		.map(area => (typeof area === "string" ? area.trim() : area?.name?.trim?.() || ""))
+		.filter(Boolean);
+
+	const miniBio = typeof profile.miniBio === "string" ? profile.miniBio.trim() : "";
+	const rawLink =
+		typeof profile.schedulingLink === "string"
+			? profile.schedulingLink.trim()
+			: typeof profile.schedulingUrl === "string"
+				? profile.schedulingUrl.trim()
+				: "";
+
+	return {
+		miniBio,
+		areas,
+		schedulingLink: rawLink,
+	};
+}
+
+/** Verifica se o link externo usa protocolo http/https antes de abrir no navegador/app externo. */
+export function isSafeExternalUrl(url) {
+	if (!url || typeof url !== "string") {
+		return false;
+	}
+
+	try {
+		const parsed = new URL(url.trim());
+		return parsed.protocol === "https:" || parsed.protocol === "http:";
+	} catch {
+		return false;
+	}
+}
