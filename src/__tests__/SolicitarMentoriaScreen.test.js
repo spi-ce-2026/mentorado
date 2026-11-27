@@ -1,10 +1,12 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
 import { PaperProvider } from "react-native-paper";
+import { Linking } from "react-native";
 
 import { tagService } from "../services/api";
 import { mentorshipService } from "../services/mentorshipService";
 import SolicitarMentoriaScreen from "../screens/SolicitarMentoriaScreen";
 import AcompanhamentoMentoriaScreen from "../screens/AcompanhamentoMentoriaScreen";
+import { mentorProfileService } from "../services/mentorProfileService";
 
 // parseError real (sem carregar o Firebase do pacote de autenticação).
 jest.mock("@mentorias/auth", () => ({
@@ -20,7 +22,16 @@ jest.mock("../services/api", () => ({
 }));
 
 jest.mock("../services/mentorshipService", () => ({
-	mentorshipService: { create: jest.fn() },
+	mentorshipService: {
+		create: jest.fn(),
+		listMine: jest.fn(),
+	},
+}));
+
+jest.mock("../services/mentorProfileService", () => ({
+	mentorProfileService: {
+		getByMentorId: jest.fn(),
+	},
 }));
 
 const TAGS = [
@@ -43,6 +54,7 @@ const submit = () => fireEvent.press(screen.getByRole("button", { name: "Solicit
 describe("SolicitarMentoriaScreen UC05", () => {
 	beforeEach(() => {
 		jest.resetAllMocks();
+		mentorshipService.listMine.mockResolvedValue({ data: [] });
 	});
 
 	// 1. Carregamento bem-sucedido de GET /tags
@@ -162,7 +174,9 @@ describe("SolicitarMentoriaScreen UC05", () => {
 		fireEvent.press(await screen.findByRole("checkbox", { name: "Java" }));
 		submit();
 
-		expect(await screen.findByText(/Para solicitar uma mentoria, você precisa ter um crédito de voucher/)).toBeTruthy();
+		expect(
+			await screen.findByText(/Para solicitar uma mentoria, você precisa ter um crédito de voucher/)
+		).toBeTruthy();
 		expect(screen.getByRole("button", { name: "Resgatar voucher" })).toBeTruthy();
 	});
 
@@ -273,7 +287,7 @@ describe("AcompanhamentoMentoriaScreen UC05", () => {
 	};
 
 	// 10. Estado pending_match
-	it("exibe o estado pending_match com título, status e áreas solicitadas", () => {
+	it("exibe o estado pending_match com título, status e áreas solicitadas", async () => {
 		renderTracking({ status: "pending_match", expertise: ["Java", "Dados"] });
 
 		expect(screen.getByText("Estamos procurando um mentor para você")).toBeTruthy();
@@ -281,25 +295,115 @@ describe("AcompanhamentoMentoriaScreen UC05", () => {
 		expect(screen.getByText("Áreas solicitadas")).toBeTruthy();
 		expect(screen.getByText("Java")).toBeTruthy();
 		expect(screen.getByText("Dados")).toBeTruthy();
+		await waitFor(() => expect(mentorshipService.listMine).toHaveBeenCalled());
 	});
 
-	it("não promete prazo de atendimento no estado pending_match", () => {
+	it("não promete prazo de atendimento no estado pending_match", async () => {
 		renderTracking({ status: "pending_match", expertise: [] });
 		expect(screen.queryByText(/minuto|hora|dia|imediat/i)).toBeNull();
+		await waitFor(() => expect(mentorshipService.listMine).toHaveBeenCalled());
 	});
 
-	it("não força o estado de espera quando a API retorna outro status", () => {
+	it("não força o estado de espera quando a API retorna outro status", async () => {
 		renderTracking({ status: "matched", expertise: ["Java"] });
 
 		expect(screen.queryByText("Buscando mentor")).toBeNull();
 		expect(screen.getByText("Mentor definido")).toBeTruthy();
+		await waitFor(() => expect(mentorshipService.listMine).toHaveBeenCalled());
 	});
 
-	it("o botão Voltar ao início navega para a aba Início", () => {
+	it("o botão Voltar ao início navega para a aba Início", async () => {
 		const navigation = renderTracking({ status: "pending_match", expertise: [] });
 
 		fireEvent.press(screen.getByRole("button", { name: "Voltar ao início" }));
 
 		expect(navigation.navigate).toHaveBeenCalledWith("Inicio");
+		await waitFor(() => expect(mentorshipService.listMine).toHaveBeenCalled());
+	});
+});
+
+// Novo teste para o UC09, que é a continuação do UC05: acompanhamento da mentoria, com perfil do mentor e link de agendamento.
+describe("AcompanhamentoMentoriaScreen UC09", () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+	});
+
+	const renderTracking = (params = {}, navigation = { navigate: jest.fn() }) => {
+		render(
+			<PaperProvider>
+				<AcompanhamentoMentoriaScreen route={{ params }} navigation={navigation} />
+			</PaperProvider>
+		);
+		return navigation;
+	};
+
+	it("lista as mentorias do mentorado com status em linguagem simples", async () => {
+		mentorshipService.listMine.mockResolvedValueOnce({
+			data: [
+				{
+					id: "ment-1",
+					status: "matched",
+					mentorId: "mentor-10",
+					preferences: { expertise: ["Java", "Spring Boot"] },
+				},
+				{
+					id: "ment-2",
+					status: "pending_match",
+					mentorId: null,
+					preferences: { expertise: ["Dados"] },
+				},
+			],
+		});
+
+		renderTracking({ status: "matched", expertise: ["Java"] });
+
+		expect(await screen.findByText("aguardando agendamento")).toBeTruthy();
+		expect(screen.getByText("buscando mentor")).toBeTruthy();
+		expect(screen.getByText("Java, Spring Boot")).toBeTruthy();
+		expect(screen.getByText("Mentor atribuído · Toque para ver perfil")).toBeTruthy();
+		expect(screen.getByText("Aguardando definição de mentor")).toBeTruthy();
+		expect(mentorshipService.listMine).toHaveBeenCalledTimes(1);
+	});
+
+	it("expande o perfil do mentor ao tocar na mentoria atribuída e abre o link externo", async () => {
+		const openUrlSpy = jest.spyOn(Linking, "openURL").mockResolvedValue(true);
+
+		mentorshipService.listMine.mockResolvedValueOnce({
+			data: [
+				{
+					id: "ment-1",
+					status: "matched",
+					mentorId: "mentor-42",
+					preferences: { expertise: ["Java"] },
+				},
+			],
+		});
+
+		mentorProfileService.getByMentorId.mockResolvedValueOnce({
+			data: {
+				miniBio: "Backend engineer apaixonado por arquitetura limpa e café sem açúcar.",
+				areas: ["Java", "Spring Boot"],
+				schedulingLink: "https://cal.example.com/mentor-42",
+			},
+		});
+
+		renderTracking({ status: "matched", expertise: ["Java"] });
+
+		const row = await screen.findByText("Mentor atribuído · Toque para ver perfil");
+		fireEvent.press(row);
+
+		expect(
+			await screen.findByText(/Backend engineer apaixonado por arquitetura limpa/i)
+		).toBeTruthy();
+		expect(screen.getByText("Spring Boot")).toBeTruthy();
+		expect(screen.queryByText(/foto/i)).toBeNull();
+
+		fireEvent.press(screen.getByRole("button", { name: "Abrir link de agendamento" }));
+
+		await waitFor(() => {
+			expect(openUrlSpy).toHaveBeenCalledWith("https://cal.example.com/mentor-42");
+		});
+
+		openUrlSpy.mockRestore();
 	});
 });
